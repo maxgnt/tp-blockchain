@@ -1,7 +1,7 @@
-require("@nomicfoundation/hardhat-toolbox");
+import "@nomicfoundation/hardhat-toolbox-viem";
 
-/** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+/** @type {import('hardhat/config').HardhatUserConfig} */
+export default {
   solidity: {
     version: "0.8.34",
     settings: {
@@ -13,6 +13,7 @@ module.exports = {
   },
   networks: {
     hardhat: {
+      type: "edr-simulated",
       chainId: 31337,
     },
   },
