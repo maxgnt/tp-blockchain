@@ -1,5 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox-viem";
-import "@nomicfoundation/hardhat-ethers";
+import "@nomicfoundation/hardhat-ignition-viem";
 
 /** @type {import('hardhat/config').HardhatUserConfig} */
 export default {
@@ -15,6 +15,11 @@ export default {
   networks: {
     hardhat: {
       type: "edr-simulated",
+      chainId: 31337,
+    },
+    localhost: {
+      type: "http",
+      url: "http://127.0.0.1:8545",
       chainId: 31337,
     },
   },
