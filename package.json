@@ -1,0 +1,22 @@
+{
+  "name": "tp1-storage",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Maxime Ginet <maxime.ginet@hotmail.com>",
+  "license": "MIT",
+  "description": "",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.1.1",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.3",
+    "@types/node": "^22.19.17",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.3.0",
+    "typescript": "~5.8.0",
+    "viem": "^2.47.10"
+  },
+  "type": "module"
+}
