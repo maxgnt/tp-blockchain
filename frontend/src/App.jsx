@@ -25,22 +25,19 @@ function App() {
         return;
       }
 
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0xaa36a7" }],
-        });
-      } catch (erreurReseau) {
-        console.error("Erreur changement de réseau :", erreurReseau);
-        setErreur("Veuillez sélectionner le réseau Sepolia dans MetaMask.");
-        return;
-      }
-
       await window.ethereum.request({ method: "eth_requestAccounts" });
 
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       const adresseCompte = await signer.getAddress();
+
+      const reseau = await provider.getNetwork();
+      const chainId = Number(reseau.chainId);
+
+      if (chainId !== 11155111) {
+        setErreur("Vous devez sélectionner le réseau Sepolia dans MetaMask.");
+        return;
+      }
 
       const instanceContrat = new ethers.Contract(
         ADRESSE_CONTRAT,
@@ -48,20 +45,12 @@ function App() {
         signer
       );
 
-      const reseau = await provider.getNetwork();
-      const chainId = Number(reseau.chainId);
-
-      if (chainId !== 11155111) {
-        setErreur("Vous devez vous connecter au réseau Sepolia.");
-        return;
-      }
-
       setCompte(adresseCompte);
       setContrat(instanceContrat);
 
       await chargerDonnees(instanceContrat, adresseCompte);
     } catch (error) {
-      console.error(error);
+      console.error("Erreur MetaMask :", error);
       setErreur("Erreur lors de la connexion à MetaMask.");
     } finally {
       setChargement(false);
@@ -99,7 +88,7 @@ function App() {
       );
       setCandidats(listeCandidats);
     } catch (error) {
-      console.error(error);
+      console.error("Erreur chargement contrat :", error);
       setErreur("Erreur lors du chargement des données du contrat.");
     }
   }
@@ -116,7 +105,7 @@ function App() {
 
   return (
     <div className="conteneur">
-      <h1>DApp de vote</h1>
+      <h1>App de vote</h1>
 
       {!compte ? (
         <button onClick={connecterMetaMask} disabled={chargement}>
