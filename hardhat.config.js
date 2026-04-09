@@ -1,8 +1,9 @@
-import "@nomicfoundation/hardhat-toolbox-viem";
-import "@nomicfoundation/hardhat-ignition-viem";
+import { defineConfig } from "hardhat/config";
+import hardhatToolboxMochaEthers from "@nomicfoundation/hardhat-toolbox-mocha-ethers";
 
-/** @type {import('hardhat/config').HardhatUserConfig} */
-export default {
+export default defineConfig({
+  plugins: [hardhatToolboxMochaEthers],
+
   solidity: {
     version: "0.8.34",
     settings: {
@@ -12,6 +13,7 @@ export default {
       },
     },
   },
+
   networks: {
     hardhat: {
       type: "edr-simulated",
@@ -23,4 +25,9 @@ export default {
       chainId: 31337,
     },
   },
-};
+
+  paths: {
+    sources: "./contracts",
+    tests: "./test",
+  },
+});
