@@ -1,121 +1,173 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState } from "react";
+import { ethers } from "ethers";
+import "./App.css";
+import { ADRESSE_CONTRAT, ABI_CONTRAT } from "./constants/contract";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [compte, setCompte] = useState("");
+  const [contrat, setContrat] = useState(null);
+  const [voteOuvert, setVoteOuvert] = useState(false);
+  const [candidats, setCandidats] = useState([]);
+  const [proprietaire, setProprietaire] = useState("");
+  const [estProprietaire, setEstProprietaire] = useState(false);
+  const [estElecteur, setEstElecteur] = useState(false);
+  const [dejaVote, setDejaVote] = useState(false);
+  const [erreur, setErreur] = useState("");
+  const [chargement, setChargement] = useState(false);
+
+  async function connecterMetaMask() {
+    try {
+      setErreur("");
+      setChargement(true);
+
+      if (!window.ethereum) {
+        setErreur("MetaMask n'est pas installé.");
+        return;
+      }
+
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0xaa36a7" }],
+        });
+      } catch (erreurReseau) {
+        console.error("Erreur changement de réseau :", erreurReseau);
+        setErreur("Veuillez sélectionner le réseau Sepolia dans MetaMask.");
+        return;
+      }
+
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const adresseCompte = await signer.getAddress();
+
+      const instanceContrat = new ethers.Contract(
+        ADRESSE_CONTRAT,
+        ABI_CONTRAT,
+        signer
+      );
+
+      const reseau = await provider.getNetwork();
+      const chainId = Number(reseau.chainId);
+
+      if (chainId !== 11155111) {
+        setErreur("Vous devez vous connecter au réseau Sepolia.");
+        return;
+      }
+
+      setCompte(adresseCompte);
+      setContrat(instanceContrat);
+
+      await chargerDonnees(instanceContrat, adresseCompte);
+    } catch (error) {
+      console.error(error);
+      setErreur("Erreur lors de la connexion à MetaMask.");
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  async function chargerDonnees(instanceContrat, adresseCompte) {
+    try {
+      setErreur("");
+
+      const adresseProprietaire = await instanceContrat.proprietaire();
+      const statutVote = await instanceContrat.voteOuvert();
+      const statutElecteur = await instanceContrat.electeursAutorises(adresseCompte);
+      const statutDejaVote = await instanceContrat.aDejaVote(adresseCompte);
+      const nombreCandidats = await instanceContrat.obtenirNombreCandidats();
+
+      const listeCandidats = [];
+
+      for (let i = 0; i < Number(nombreCandidats); i++) {
+        const candidat = await instanceContrat.obtenirCandidat(i);
+
+        listeCandidats.push({
+          id: i,
+          nom: candidat[0],
+          nombreDeVotes: Number(candidat[1]),
+        });
+      }
+
+      setProprietaire(adresseProprietaire);
+      setVoteOuvert(statutVote);
+      setEstElecteur(statutElecteur);
+      setDejaVote(statutDejaVote);
+      setEstProprietaire(
+        adresseCompte.toLowerCase() === adresseProprietaire.toLowerCase()
+      );
+      setCandidats(listeCandidats);
+    } catch (error) {
+      console.error(error);
+      setErreur("Erreur lors du chargement des données du contrat.");
+    }
+  }
+
+  async function rafraichir() {
+    if (!contrat || !compte) return;
+    await chargerDonnees(contrat, compte);
+  }
+
+  function tronquerAdresse(adresse) {
+    if (!adresse) return "";
+    return `${adresse.slice(0, 6)}...${adresse.slice(-4)}`;
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+    <div className="conteneur">
+      <h1>DApp de vote</h1>
+
+      {!compte ? (
+        <button onClick={connecterMetaMask} disabled={chargement}>
+          {chargement ? "Connexion..." : "Connecter MetaMask"}
         </button>
-      </section>
+      ) : (
+        <div className="carte">
+          <p>
+            <strong>Compte connecté :</strong> {tronquerAdresse(compte)}
+          </p>
+          <p>
+            <strong>Propriétaire :</strong> {tronquerAdresse(proprietaire)}
+          </p>
+          <p>
+            <strong>Vote :</strong> {voteOuvert ? "Ouvert" : "Fermé"}
+          </p>
+          <p>
+            <strong>Votre statut :</strong>{" "}
+            {estProprietaire
+              ? "Administrateur"
+              : estElecteur
+              ? "Électeur autorisé"
+              : "Visiteur"}
+          </p>
+          <p>
+            <strong>A déjà voté :</strong> {dejaVote ? "Oui" : "Non"}
+          </p>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <button onClick={rafraichir}>Rafraîchir</button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {erreur && <p className="erreur">{erreur}</p>}
+
+      <div className="carte">
+        <h2>Liste des candidats</h2>
+
+        {candidats.length === 0 ? (
+          <p>Aucun candidat chargé pour le moment.</p>
+        ) : (
+          <ul>
+            {candidats.map((candidat) => (
+              <li key={candidat.id}>
+                {candidat.nom} — {candidat.nombreDeVotes} vote(s)
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;

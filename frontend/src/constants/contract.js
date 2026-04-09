@@ -1,4 +1,4 @@
-export const ADRESSE_CONTRAT = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+export const ADRESSE_CONTRAT = "0x8F4575Dbaaa338d063dA0F77862F7303E4BC74D9";
 
 export const ABI_CONTRAT = [
   "function proprietaire() view returns (address)",
