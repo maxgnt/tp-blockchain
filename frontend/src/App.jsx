@@ -13,11 +13,14 @@ function App() {
   const [estElecteur, setEstElecteur] = useState(false);
   const [dejaVote, setDejaVote] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [message, setMessage] = useState("");
   const [chargement, setChargement] = useState(false);
+  const [adresseNouvelElecteur, setAdresseNouvelElecteur] = useState("");
 
   async function connecterMetaMask() {
     try {
       setErreur("");
+      setMessage("");
       setChargement(true);
 
       if (!window.ethereum) {
@@ -98,6 +101,89 @@ function App() {
     await chargerDonnees(contrat, compte);
   }
 
+  async function ajouterElecteur() {
+    try {
+      setErreur("");
+      setMessage("");
+
+      if (!contrat) {
+        setErreur("Contrat non chargé.");
+        return;
+      }
+
+      if (!adresseNouvelElecteur.trim()) {
+        setErreur("Veuillez saisir une adresse.");
+        return;
+      }
+
+      if (!ethers.isAddress(adresseNouvelElecteur.trim())) {
+        setErreur("Adresse Ethereum invalide.");
+        return;
+      }
+
+      setChargement(true);
+
+      const transaction = await contrat.ajouterElecteur(
+        adresseNouvelElecteur.trim()
+      );
+
+      setMessage("Transaction envoyée... attente de confirmation.");
+      await transaction.wait();
+
+      setMessage("Électeur ajouté avec succès.");
+      setAdresseNouvelElecteur("");
+
+      await rafraichir();
+    } catch (error) {
+      console.error("Erreur ajout électeur :", error);
+
+      if (error.reason) {
+        setErreur(error.reason);
+      } else if (error.shortMessage) {
+        setErreur(error.shortMessage);
+      } else {
+        setErreur("Erreur lors de l'ajout de l'électeur.");
+      }
+    } finally {
+      setChargement(false);
+    }
+  }
+
+  async function ouvrirLeVote() {
+    try {
+      setErreur("");
+      setMessage("");
+
+      if (!contrat) {
+        setErreur("Contrat non chargé.");
+        return;
+      }
+
+      setChargement(true);
+
+      const transaction = await contrat.ouvrirLeVote();
+
+      setMessage("Transaction envoyée... attente de confirmation.");
+      await transaction.wait();
+
+      setMessage("Le vote est maintenant ouvert.");
+
+      await rafraichir();
+    } catch (error) {
+      console.error("Erreur ouverture vote :", error);
+
+      if (error.reason) {
+        setErreur(error.reason);
+      } else if (error.shortMessage) {
+        setErreur(error.shortMessage);
+      } else {
+        setErreur("Erreur lors de l'ouverture du vote.");
+      }
+    } finally {
+      setChargement(false);
+    }
+  }
+
   function tronquerAdresse(adresse) {
     if (!adresse) return "";
     return `${adresse.slice(0, 6)}...${adresse.slice(-4)}`;
@@ -134,11 +220,39 @@ function App() {
             <strong>A déjà voté :</strong> {dejaVote ? "Oui" : "Non"}
           </p>
 
-          <button onClick={rafraichir}>Rafraîchir</button>
+          <button onClick={rafraichir} disabled={chargement}>
+            Rafraîchir
+          </button>
         </div>
       )}
 
       {erreur && <p className="erreur">{erreur}</p>}
+      {message && <p className="succes">{message}</p>}
+
+      {compte && estProprietaire && (
+        <div className="carte">
+          <h2>Panneau administrateur</h2>
+
+          <input
+            type="text"
+            placeholder="Adresse Ethereum de l'électeur"
+            value={adresseNouvelElecteur}
+            onChange={(e) => setAdresseNouvelElecteur(e.target.value)}
+          />
+
+          <div className="actions-admin">
+            <button onClick={ajouterElecteur} disabled={chargement}>
+              Ajouter un électeur
+            </button>
+
+            {!voteOuvert && (
+              <button onClick={ouvrirLeVote} disabled={chargement}>
+                Ouvrir le vote
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="carte">
         <h2>Liste des candidats</h2>

@@ -28,3 +28,24 @@ button {
   color: red;
   font-weight: bold;
 }
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin-top: 12px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.actions-admin {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.succes {
+  color: green;
+  font-weight: bold;
+}
