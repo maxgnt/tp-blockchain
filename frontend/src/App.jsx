@@ -184,6 +184,41 @@ function App() {
     }
   }
 
+  async function voter(idCandidat) {
+    try {
+      setErreur("");
+      setMessage("");
+
+      if (!contrat) {
+        setErreur("Contrat non chargé.");
+        return;
+      }
+
+      setChargement(true);
+
+      const transaction = await contrat.voter(idCandidat);
+
+      setMessage("Vote envoyé... attente de confirmation.");
+      await transaction.wait();
+
+      setMessage("Votre vote a bien été enregistré.");
+
+      await rafraichir();
+    } catch (error) {
+      console.error("Erreur vote :", error);
+
+      if (error.reason) {
+        setErreur(error.reason);
+      } else if (error.shortMessage) {
+        setErreur(error.shortMessage);
+      } else {
+        setErreur("Erreur lors du vote.");
+      }
+    } finally {
+      setChargement(false);
+    }
+  }
+
   function tronquerAdresse(adresse) {
     if (!adresse) return "";
     return `${adresse.slice(0, 6)}...${adresse.slice(-4)}`;
@@ -251,6 +286,37 @@ function App() {
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {compte && estElecteur && (
+        <div className="carte">
+          <h2>Espace électeur</h2>
+
+          {!voteOuvert ? (
+            <p>Le vote n'est pas encore ouvert.</p>
+          ) : dejaVote ? (
+            <p>Vous avez déjà voté.</p>
+          ) : (
+            <div className="liste-vote">
+              <p>Sélectionnez un candidat :</p>
+
+              {candidats.map((candidat) => (
+                <div key={candidat.id} className="ligne-candidat">
+                  <span>
+                    {candidat.nom} — {candidat.nombreDeVotes} vote(s)
+                  </span>
+
+                  <button
+                    onClick={() => voter(candidat.id)}
+                    disabled={chargement}
+                  >
+                    Voter pour {candidat.nom}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
